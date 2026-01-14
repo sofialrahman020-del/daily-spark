@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -7,14 +7,22 @@ import EmptyState from '@/components/EmptyState';
 import NextRoutineBanner from '@/components/NextRoutineBanner';
 import RoutineForm from '@/components/RoutineForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { BottomNavigation } from '@/components/BottomNavigation';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useTheme } from '@/hooks/useTheme';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Routine, RoutineFormData } from '@/types/routine';
+import { TemplateRoutine } from '@/types/template';
 import { toast } from 'sonner';
+import { Goals } from './Goals';
+import { Templates } from './Templates';
+import { Profile } from './Profile';
 
 type View = 'list' | 'add' | 'edit';
+type TabId = 'routine' | 'goals' | 'templates' | 'profile';
 
 const Index: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabId>('routine');
   const [view, setView] = useState<View>('list');
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -26,10 +34,11 @@ const Index: React.FC = () => {
     updateRoutine,
     deleteRoutine,
     toggleRoutine,
-    getRoutine,
     getTodaysRoutines,
     getNextRoutine,
   } = useRoutines();
+
+  const { incrementRoutinesCompleted } = useUserProfile();
 
   // Initialize theme
   useTheme();
@@ -74,7 +83,56 @@ const Index: React.FC = () => {
     setEditingRoutine(null);
   };
 
-  // Show form view
+  const handleToggle = useCallback((id: string) => {
+    const routine = routines.find(r => r.id === id);
+    if (routine && routine.isEnabled) {
+      incrementRoutinesCompleted();
+    }
+    toggleRoutine(id);
+  }, [routines, toggleRoutine, incrementRoutinesCompleted]);
+
+  const handleApplyTemplate = useCallback((templateRoutines: TemplateRoutine[]) => {
+    templateRoutines.forEach((routine) => {
+      addRoutine({
+        title: routine.title,
+        time: routine.time,
+        reminderOffset: routine.reminderOffset,
+        repeatOption: routine.repeatOption,
+        customDays: routine.customDays,
+      });
+    });
+    setActiveTab('routine');
+  }, [addRoutine]);
+
+  // Render different tabs
+  if (activeTab === 'goals') {
+    return (
+      <>
+        <Goals />
+        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      </>
+    );
+  }
+
+  if (activeTab === 'templates') {
+    return (
+      <>
+        <Templates onApplyTemplate={handleApplyTemplate} />
+        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      </>
+    );
+  }
+
+  if (activeTab === 'profile') {
+    return (
+      <>
+        <Profile />
+        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      </>
+    );
+  }
+
+  // Show form view for routine tab
   if (view === 'add' || view === 'edit') {
     return (
       <>
@@ -93,6 +151,7 @@ const Index: React.FC = () => {
           onConfirm={handleDelete}
           variant="destructive"
         />
+        <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       </>
     );
   }
@@ -130,7 +189,7 @@ const Index: React.FC = () => {
                   <RoutineCard
                     key={routine.id}
                     routine={routine}
-                    onToggle={toggleRoutine}
+                    onToggle={handleToggle}
                     onClick={handleEditClick}
                     isNext={nextRoutine?.id === routine.id}
                   />
@@ -157,7 +216,7 @@ const Index: React.FC = () => {
                       <RoutineCard
                         key={routine.id}
                         routine={routine}
-                        onToggle={toggleRoutine}
+                        onToggle={handleToggle}
                         onClick={handleEditClick}
                       />
                     ))}
@@ -170,7 +229,7 @@ const Index: React.FC = () => {
 
       {/* FAB */}
       {routines.length > 0 && (
-        <div className="fixed bottom-6 right-4 safe-bottom">
+        <div className="fixed bottom-20 right-4 safe-bottom">
           <Button
             variant="fab"
             size="fab"
@@ -181,6 +240,9 @@ const Index: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
