@@ -45,7 +45,10 @@ const Index: React.FC = () => {
   // Initialize theme
   useTheme();
 
-  // Handle login
+  const todaysRoutines = getTodaysRoutines();
+  const nextRoutine = getNextRoutine();
+
+  // Handle login - defined before early return
   const handleLogin = useCallback((name: string, method: LoginMethod) => {
     updateProfile({
       name,
@@ -55,25 +58,17 @@ const Index: React.FC = () => {
     toast.success(`Welcome, ${name}!`);
   }, [updateProfile]);
 
-  // Show login screen if not logged in
-  if (!profile.isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  const todaysRoutines = getTodaysRoutines();
-  const nextRoutine = getNextRoutine();
-
-  const handleAddClick = () => {
+  const handleAddClick = useCallback(() => {
     setEditingRoutine(null);
     setView('add');
-  };
+  }, []);
 
-  const handleEditClick = (routine: Routine) => {
+  const handleEditClick = useCallback((routine: Routine) => {
     setEditingRoutine(routine);
     setView('edit');
-  };
+  }, []);
 
-  const handleSave = (data: RoutineFormData) => {
+  const handleSave = useCallback((data: RoutineFormData) => {
     if (editingRoutine) {
       updateRoutine(editingRoutine.id, data);
       toast.success('Routine updated');
@@ -83,9 +78,9 @@ const Index: React.FC = () => {
     }
     setView('list');
     setEditingRoutine(null);
-  };
+  }, [editingRoutine, updateRoutine, addRoutine]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (editingRoutine) {
       deleteRoutine(editingRoutine.id);
       toast.success('Routine deleted');
@@ -93,12 +88,12 @@ const Index: React.FC = () => {
       setEditingRoutine(null);
     }
     setDeleteConfirmOpen(false);
-  };
+  }, [editingRoutine, deleteRoutine]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setView('list');
     setEditingRoutine(null);
-  };
+  }, []);
 
   const handleToggle = useCallback((id: string) => {
     const routine = routines.find(r => r.id === id);
@@ -120,6 +115,12 @@ const Index: React.FC = () => {
     });
     setActiveTab('routine');
   }, [addRoutine]);
+
+  // Show login screen if not logged in
+  if (!profile.isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
+
 
   // Render different tabs
   if (activeTab === 'goals') {
