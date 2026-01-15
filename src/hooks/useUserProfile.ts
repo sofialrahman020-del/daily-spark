@@ -1,8 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { UserProfile, UserStats, DEFAULT_PROFILE, DEFAULT_STATS } from '@/types/profile';
 
 const PROFILE_KEY = 'user-profile';
 const STATS_KEY = 'user-stats';
+
+// Shared state for profile
+let profileState: UserProfile = DEFAULT_PROFILE;
+let statsState: UserStats = DEFAULT_STATS;
+let isInitialized = false;
+
+// Subscribers for state changes
+const profileListeners = new Set<() => void>();
+const statsListeners = new Set<() => void>();
+
+const notifyProfileListeners = () => {
+  profileListeners.forEach(listener => listener());
+};
+
+const notifyStatsListeners = () => {
+  statsListeners.forEach(listener => listener());
+};
 
 const loadProfile = (): UserProfile => {
   try {
@@ -44,13 +61,10 @@ const getTodayDate = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
-export const useUserProfile = () => {
-  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
-  const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadedProfile = loadProfile();
+// Initialize state from localStorage
+const initializeState = () => {
+  if (!isInitialized) {
+    profileState = loadProfile();
     const loadedStats = loadStats();
     
     // Check and update streak
@@ -64,56 +78,71 @@ export const useUserProfile = () => {
       loadedStats.currentStreak = 0;
     }
     
-    setProfile(loadedProfile);
-    setStats(loadedStats);
-    setIsLoading(false);
-  }, []);
+    statsState = loadedStats;
+    isInitialized = true;
+  }
+};
 
-  useEffect(() => {
-    if (!isLoading) {
-      saveProfile(profile);
-    }
-  }, [profile, isLoading]);
+// Initialize on module load
+initializeState();
 
-  useEffect(() => {
-    if (!isLoading) {
-      saveStats(stats);
-    }
-  }, [stats, isLoading]);
+export const useUserProfile = () => {
+  // Subscribe to profile changes
+  const profile = useSyncExternalStore(
+    (callback) => {
+      profileListeners.add(callback);
+      return () => profileListeners.delete(callback);
+    },
+    () => profileState
+  );
+
+  // Subscribe to stats changes
+  const stats = useSyncExternalStore(
+    (callback) => {
+      statsListeners.add(callback);
+      return () => statsListeners.delete(callback);
+    },
+    () => statsState
+  );
 
   const updateProfile = useCallback((updates: Partial<UserProfile>): void => {
-    setProfile(prev => ({ ...prev, ...updates }));
+    profileState = { ...profileState, ...updates };
+    saveProfile(profileState);
+    notifyProfileListeners();
   }, []);
 
   const incrementRoutinesCompleted = useCallback((): void => {
     const today = getTodayDate();
     
-    setStats(prev => {
-      const isNewDay = prev.lastActiveDate !== today;
-      const newStreak = isNewDay ? prev.currentStreak + 1 : prev.currentStreak;
-      const newBestStreak = Math.max(prev.bestStreak, newStreak);
-      
-      return {
-        totalRoutinesCompleted: prev.totalRoutinesCompleted + 1,
-        currentStreak: newStreak,
-        bestStreak: newBestStreak,
-        lastActiveDate: today,
-      };
-    });
+    const isNewDay = statsState.lastActiveDate !== today;
+    const newStreak = isNewDay ? statsState.currentStreak + 1 : statsState.currentStreak;
+    const newBestStreak = Math.max(statsState.bestStreak, newStreak);
+    
+    statsState = {
+      totalRoutinesCompleted: statsState.totalRoutinesCompleted + 1,
+      currentStreak: newStreak,
+      bestStreak: newBestStreak,
+      lastActiveDate: today,
+    };
+    
+    saveStats(statsState);
+    notifyStatsListeners();
   }, []);
 
   const updateLastActiveDate = useCallback((): void => {
     const today = getTodayDate();
-    setStats(prev => ({
-      ...prev,
+    statsState = {
+      ...statsState,
       lastActiveDate: today,
-    }));
+    };
+    saveStats(statsState);
+    notifyStatsListeners();
   }, []);
 
   return {
     profile,
     stats,
-    isLoading,
+    isLoading: false,
     updateProfile,
     incrementRoutinesCompleted,
     updateLastActiveDate,
