@@ -13,10 +13,12 @@ import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { Routine, RoutineFormData } from '@/types/routine';
 import { TemplateRoutine } from '@/types/template';
+import { LoginMethod } from '@/types/profile';
 import { toast } from 'sonner';
 import { Goals } from './Goals';
 import { Templates } from './Templates';
 import { Profile } from './Profile';
+import { Login } from './Login';
 
 type View = 'list' | 'add' | 'edit';
 type TabId = 'routine' | 'goals' | 'templates' | 'profile';
@@ -38,10 +40,25 @@ const Index: React.FC = () => {
     getNextRoutine,
   } = useRoutines();
 
-  const { incrementRoutinesCompleted } = useUserProfile();
+  const { profile, incrementRoutinesCompleted, updateProfile } = useUserProfile();
 
   // Initialize theme
   useTheme();
+
+  // Handle login
+  const handleLogin = useCallback((name: string, method: LoginMethod) => {
+    updateProfile({
+      name,
+      isLoggedIn: true,
+      loginMethod: method,
+    });
+    toast.success(`Welcome, ${name}!`);
+  }, [updateProfile]);
+
+  // Show login screen if not logged in
+  if (!profile.isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   const todaysRoutines = getTodaysRoutines();
   const nextRoutine = getNextRoutine();

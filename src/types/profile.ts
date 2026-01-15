@@ -1,5 +1,7 @@
 import { ReminderOffset } from './routine';
 
+export type LoginMethod = 'guest' | 'email' | 'google' | 'facebook';
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -8,6 +10,8 @@ export interface UserProfile {
   alarmSound: string;
   vibrationEnabled: boolean;
   theme: 'light' | 'dark' | 'system';
+  isLoggedIn: boolean;
+  loginMethod: LoginMethod | null;
 }
 
 export interface UserStats {
@@ -25,6 +29,8 @@ export const DEFAULT_PROFILE: UserProfile = {
   alarmSound: 'default',
   vibrationEnabled: true,
   theme: 'dark',
+  isLoggedIn: false,
+  loginMethod: null,
 };
 
 export const DEFAULT_STATS: UserStats = {
