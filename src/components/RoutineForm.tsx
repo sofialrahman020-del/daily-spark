@@ -23,6 +23,7 @@ interface RoutineFormProps {
 }
 
 const REMINDER_OPTIONS: { value: ReminderOffset; label: string }[] = [
+  { value: 0, label: 'No Alarm' },
   { value: 5, label: '5 min' },
   { value: 10, label: '10 min' },
   { value: 15, label: '15 min' },
@@ -75,7 +76,7 @@ const RoutineForm: React.FC<RoutineFormProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col safe-top safe-bottom">
+    <div className="min-h-screen bg-background flex flex-col safe-top safe-bottom pb-20 overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border">
         <button
@@ -129,14 +130,14 @@ const RoutineForm: React.FC<RoutineFormProps> = ({
               <Bell className="w-4 h-4" />
               Remind Me Before
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {REMINDER_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setReminderOffset(option.value)}
                   className={cn(
-                    "py-3 rounded-xl text-sm font-medium transition-all duration-200 haptic",
+                    "py-3 rounded-xl text-xs font-medium transition-all duration-200 haptic",
                     reminderOffset === option.value
                       ? "bg-primary text-primary-foreground shadow-soft"
                       : "bg-secondary text-secondary-foreground hover:bg-muted"

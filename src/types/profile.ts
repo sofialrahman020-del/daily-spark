@@ -2,6 +2,7 @@ import { ReminderOffset } from './routine';
 
 export interface UserProfile {
   name: string;
+  email: string;
   photoUrl: string | null;
   defaultReminderOffset: ReminderOffset;
   alarmSound: string;
@@ -18,6 +19,7 @@ export interface UserStats {
 
 export const DEFAULT_PROFILE: UserProfile = {
   name: 'User',
+  email: '',
   photoUrl: null,
   defaultReminderOffset: 5,
   alarmSound: 'default',

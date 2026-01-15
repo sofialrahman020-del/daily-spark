@@ -1,6 +1,6 @@
 // Routine data types for the Daily Routine Reminder app
 
-export type ReminderOffset = 5 | 10 | 15;
+export type ReminderOffset = 0 | 5 | 10 | 15; // 0 means no alarm
 
 export type RepeatOption = 'daily' | 'weekdays' | 'custom';
 
