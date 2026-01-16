@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import RoutineCard from '@/components/RoutineCard';
@@ -11,6 +11,7 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { useRoutines } from '@/hooks/useRoutines';
 import { useTheme } from '@/hooks/useTheme';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Routine, RoutineFormData } from '@/types/routine';
 import { TemplateRoutine } from '@/types/template';
 import { LoginMethod } from '@/types/profile';
@@ -19,8 +20,9 @@ import { Goals } from './Goals';
 import { Templates } from './Templates';
 import { Profile } from './Profile';
 import { Login } from './Login';
+import { Plans } from './Plans';
 
-type View = 'list' | 'add' | 'edit';
+type View = 'list' | 'add' | 'edit' | 'plans';
 type TabId = 'routine' | 'goals' | 'templates' | 'profile';
 
 const Index: React.FC = () => {
@@ -41,6 +43,7 @@ const Index: React.FC = () => {
   } = useRoutines();
 
   const { profile, incrementRoutinesCompleted, updateProfile } = useUserProfile();
+  const { canAddRoutine, getRemainingRoutines, isPremium, limits } = useSubscription();
 
   // Initialize theme
   useTheme();
@@ -58,10 +61,19 @@ const Index: React.FC = () => {
     toast.success(`Welcome, ${name}!`);
   }, [updateProfile]);
 
+  const handleNavigateToPlans = useCallback(() => {
+    setView('plans');
+  }, []);
+
   const handleAddClick = useCallback(() => {
+    if (!canAddRoutine(routines.length)) {
+      toast.error(`Upgrade to Premium for unlimited routines! (${limits.routines} max on Free plan)`);
+      handleNavigateToPlans();
+      return;
+    }
     setEditingRoutine(null);
     setView('add');
-  }, []);
+  }, [canAddRoutine, routines.length, limits.routines, handleNavigateToPlans]);
 
   const handleEditClick = useCallback((routine: Routine) => {
     setEditingRoutine(routine);
@@ -122,11 +134,16 @@ const Index: React.FC = () => {
   }
 
 
+  // Show plans page
+  if (view === 'plans') {
+    return <Plans onBack={() => setView('list')} />;
+  }
+
   // Render different tabs
   if (activeTab === 'goals') {
     return (
       <>
-        <Goals />
+        <Goals onNavigateToPlans={handleNavigateToPlans} />
         <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       </>
     );
@@ -144,7 +161,7 @@ const Index: React.FC = () => {
   if (activeTab === 'profile') {
     return (
       <>
-        <Profile />
+        <Profile onNavigateToPlans={handleNavigateToPlans} />
         <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       </>
     );
@@ -197,6 +214,11 @@ const Index: React.FC = () => {
             <div className="px-4 mb-4">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Today's Routines ({todaysRoutines.length})
+                {!isPremium && (
+                  <span className="ml-2 text-xs normal-case">
+                    • {getRemainingRoutines(routines.length)} remaining
+                  </span>
+                )}
               </h2>
             </div>
 
@@ -253,8 +275,13 @@ const Index: React.FC = () => {
             size="fab"
             onClick={handleAddClick}
             className="shadow-elevated"
+            disabled={!isPremium && getRemainingRoutines(routines.length) === 0}
           >
-            <Plus className="w-6 h-6" />
+            {!isPremium && getRemainingRoutines(routines.length) === 0 ? (
+              <Lock className="w-6 h-6" />
+            ) : (
+              <Plus className="w-6 h-6" />
+            )}
           </Button>
         </div>
       )}

@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { Plus, Target, Flame } from 'lucide-react';
+import { Plus, Target, Flame, Lock, Crown } from 'lucide-react';
 import { useGoals } from '@/hooks/useGoals';
+import { useSubscription } from '@/hooks/useSubscription';
 import { GoalCard } from '@/components/GoalCard';
 import { GoalForm } from '@/components/GoalForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
-export const Goals = () => {
+interface GoalsProps {
+  onNavigateToPlans?: () => void;
+}
+
+export const Goals = ({ onNavigateToPlans }: GoalsProps) => {
   const {
     goals,
     addGoal,
@@ -18,10 +24,22 @@ export const Goals = () => {
     getTotalGoals,
   } = useGoals();
 
+  const { canAddGoal, getRemainingGoals, isPremium, limits } = useSubscription();
+
   const [showForm, setShowForm] = useState(false);
   const [goalToDelete, setGoalToDelete] = useState<string | null>(null);
 
   const completedCount = getCompletedGoalsToday();
+  const remainingGoals = getRemainingGoals(goals.length);
+
+  const handleAddGoal = () => {
+    if (!canAddGoal(goals.length)) {
+      toast.error(`Upgrade to Premium for unlimited goals! (${limits.goals} max on Free plan)`);
+      onNavigateToPlans?.();
+      return;
+    }
+    setShowForm(true);
+  };
   const totalCount = getTotalGoals();
   const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
@@ -44,14 +62,23 @@ export const Goals = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Goals</h1>
-            <p className="text-sm text-muted-foreground">Track your daily progress</p>
+            <p className="text-sm text-muted-foreground">
+              {isPremium 
+                ? 'Track your daily progress' 
+                : `${remainingGoals} goals remaining`}
+            </p>
           </div>
           <Button
-            onClick={() => setShowForm(true)}
+            onClick={handleAddGoal}
             size="icon"
             className="w-10 h-10 rounded-xl bg-primary hover:bg-primary/90"
+            disabled={!isPremium && remainingGoals === 0}
           >
-            <Plus className="w-5 h-5" />
+            {!isPremium && remainingGoals === 0 ? (
+              <Lock className="w-5 h-5" />
+            ) : (
+              <Plus className="w-5 h-5" />
+            )}
           </Button>
         </div>
 
@@ -97,7 +124,7 @@ export const Goals = () => {
               Create your first goal to start tracking your progress
             </p>
             <Button
-              onClick={() => setShowForm(true)}
+              onClick={handleAddGoal}
               className="rounded-xl bg-primary hover:bg-primary/90"
             >
               <Plus className="w-5 h-5 mr-2" />

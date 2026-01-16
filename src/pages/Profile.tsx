@@ -1,17 +1,24 @@
 import { useState, useRef } from 'react';
-import { User, Bell, Volume2, Vibrate, Moon, Sun, Shield, Flame, Trophy, CheckCircle, Pencil, Camera, Mail, LogOut } from 'lucide-react';
+import { User, Bell, Volume2, Vibrate, Moon, Sun, Shield, Flame, Trophy, CheckCircle, Pencil, Camera, Mail, LogOut, Crown, ChevronRight } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTheme } from '@/hooks/useTheme';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ALARM_SOUNDS } from '@/types/profile';
 import { ReminderOffset } from '@/types/routine';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-export const Profile = () => {
+interface ProfileProps {
+  onNavigateToPlans?: () => void;
+}
+
+export const Profile = ({ onNavigateToPlans }: ProfileProps) => {
   const { profile, stats, updateProfile } = useUserProfile();
+  const { isPremium, subscription, getDaysRemaining } = useSubscription();
   const { theme, setTheme } = useTheme();
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -172,6 +179,39 @@ export const Profile = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Subscription Section */}
+      <div className="px-4 mb-6">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">Subscription</h2>
+        <button
+          onClick={onNavigateToPlans}
+          className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-left transition-all hover:from-amber-500/20 hover:to-orange-500/20"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-full">
+                <Crown className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-foreground">
+                    {isPremium ? 'Premium' : 'Free Plan'}
+                  </p>
+                  {isPremium && (
+                    <Badge className="bg-amber-500 text-white text-xs">Active</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {isPremium 
+                    ? `${getDaysRemaining()} days remaining` 
+                    : 'Upgrade for unlimited access'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </button>
       </div>
 
       {/* Account Section */}
